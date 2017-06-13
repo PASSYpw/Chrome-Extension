@@ -1,8 +1,19 @@
 /**
  * Created by liz3 on 13.06.17.
  */
-
-
+var inputs = $(".text > input");
+inputs.each(function (index, elem) {
+    elem = $(elem);
+    if (elem.val().length > 0)
+        elem.addClass("hastext");
+});
+inputs.change(function () {
+    const me = $(this);
+    if (me.val().length > 0)
+        me.addClass("hastext");
+    else
+        me.removeClass("hastext");
+});
 const port = chrome.runtime.connect({name: "extension"});
 
 port.onMessage.addListener(function(msg) {
