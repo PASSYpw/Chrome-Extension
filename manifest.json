@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+
+  "name": "Passy.pw Chrome Extension",
+  "description": "This is the Chrome Extension for the Passy.pw Password Manager",
+  "version": "1.0",
+
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "index.html",
+    "default_title" : "Passy.pw"
+  },
+  "background": {
+    "scripts": ["assets/js/jquery.min.js", "src/service.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js":     ["assets/js/jquery.min.js", "src/index.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+
+  "permissions": [
+    "activeTab",
+    "https://app.passy.pw/",
+    "https://dev.liz3.net/passy-api/index.php"
+  ]
+}
