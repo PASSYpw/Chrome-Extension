@@ -1,22 +1,14 @@
-/**
- * Created by liz3 on 12.06.17.
- */
 const port = chrome.runtime.connect({name: "site"});
-var currentField = null;
+var activeField = null;
 port.onMessage.addListener(function (msg) {
-
-    if (msg.action == "insert") {
-
-        const password = msg.password;
-        currentField.val(password);
-
-    }
+	if (msg.action == "insert") {
+		const password = msg.password;
+		activeField.val(password);
+	}
 });
 document.addEventListener("focus", function (event) {
-    const elem = $(event.srcElement);
-
-        currentField = elem;
-
-
+	var elem = $(event.srcElement);
+	if (elem.is("input") || elem.is("textarea"))
+		activeField = elem;
 }, true);
 

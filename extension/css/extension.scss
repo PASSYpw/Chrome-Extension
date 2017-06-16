@@ -1,0 +1,136 @@
+/*
+ * PASSY 2.x.x
+ * Copyright 2017 Sefa Eyeoglu
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+@import url(https://fonts.googleapis.com/css?family=Roboto:300,400,500);
+
+//Theme settings
+$colorBackground: #EEEEEE;
+$colorForeground: #FFFFFF;
+$colorText: #000000;
+$colorSecondaryText: #757575;
+$colorDivider: rgba(0, 0, 0, 0.06);
+$colorTheme: #FF5722;
+$colorThemeText: #FFFFFF;
+$colorAccent: #00BCD4;
+$colorAccentText: #FFFFFF;
+
+//Colors
+$colorDefault: #ffffff;
+$colorPrimary: $colorAccent;
+$colorSuccess: #4CAF50;
+$colorInfo: #00BCD4;
+$colorWarning: #FFC107;
+$colorDanger: #f44336;
+
+// Includes
+@import "helper";
+@import "forms";
+@import "buttons";
+@import "tables";
+
+// General
+html, body {
+	width: 100%;
+	margin: 0;
+	font-family: sans-serif;
+}
+
+body {
+	background: $colorBackground;
+	color: $colorText;
+	min-width: 300px;
+}
+
+.container {
+	width: 100%;
+	margin: 0 auto;
+}
+
+@media screen and (min-width: 768px) {
+	.container {
+		width: 700px;
+	}
+}
+
+@media screen and (min-width: 1024px) {
+	.container {
+		width: 1000px;
+	}
+}
+
+.content {
+	background-color: $colorForeground;
+	padding: 25px 25px 50px;
+	@extend .depth-1;
+}
+
+// Controls
+input, button, a {
+	outline: none;
+}
+
+.text-input {
+	width: 100%;
+}
+
+.textbox {
+	padding-top: 15px;
+}
+
+.textbox:last-of-type {
+	padding-bottom: 15px;
+}
+
+.textbox > .text-input {
+	height: 24px;
+	display: block;
+	padding: 0;
+	border: none;
+	border-bottom: solid rgba(0, 0, 0, 0.12) 2px;
+	border-radius: 0;
+	line-height: 24px;
+	font-size: 14px;
+	margin: 5px 0 0;
+}
+
+.textbox > label {
+	color: $colorSecondaryText;
+	font-size: 14px;
+	font-weight: normal;
+	position: absolute;
+	pointer-events: none;
+	transform-origin: bottom left;
+	transform: translateY(-24px);
+	-webkit-transition: all 0.2s ease;
+	-moz-transition: all 0.2s ease;
+	-ms-transition: all 0.2s ease;
+	-o-transition: all 0.2s ease;
+	transition: all 0.2s ease;
+}
+
+.textbox > input:focus ~ label, .textbox > input.hastext ~ label {
+	transform: scale(.8) translateY(-53px);
+	color: $colorAccent;
+}
+
+.textbox > .text-input:focus {
+	border-bottom-color: $colorAccent;
+}
+
+.textbox > .form-control[disabled], .form-control[readonly], fieldset[disabled] .form-control {
+	background-color: transparent;
+	opacity: 0.5;
+}

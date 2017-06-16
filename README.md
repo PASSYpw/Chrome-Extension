@@ -8,3 +8,6 @@ Then you have to drag and drop the extension into the extensions window.
 
 ## Note
 The extension in it's current state will be disabled after a restart of the browser.
+
+## License
+This project is licensed under Apache License 2.0

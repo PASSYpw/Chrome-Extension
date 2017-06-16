@@ -1,0 +1,38 @@
+.table {
+	width: 100%;
+	max-width: 100%;
+	margin-bottom: 20px;
+	background-color: transparent;
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+
+.table > thead > tr {
+	height: 56px;
+}
+
+.table > thead:first-child > tr:first-child > td, .table > thead:first-child > tr:first-child > th {
+	border-top: 0;
+}
+
+.table > thead > tr > th {
+	vertical-align: bottom;
+	border-bottom: 2px solid #ddd;
+}
+
+.table > tbody > tr > td, .table > tbody > tr > th, .table > tfoot > tr > td, .table > tfoot > tr > th, .table > thead > tr > td, .table > thead > tr > th {
+	padding: 8px;
+	line-height: 1.42857143;
+	vertical-align: top;
+	border-top: 1px solid #ddd;
+}
+
+.table > thead > tr > th {
+	color: rgba($colorText, 0.75);
+}
+
+.table td, .table th {
+	vertical-align: middle !important;
+	border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+	font-weight: normal !important;
+}
