@@ -4,6 +4,7 @@ inputs.each(function (index, elem) {
 	if (elem.val().length > 0)
 		elem.addClass("hastext");
 });
+
 inputs.change(function () {
 	const me = $(this);
 	if (me.val().length > 0)
@@ -15,34 +16,41 @@ inputs.change(function () {
 const port = chrome.runtime.connect({name: "extension"});
 
 port.onMessage.addListener(function (msg) {
-	console.log(msg);
+	console.debug(msg);
+	switch (msg.action) {
+		case "set-pass":
+			setPasswords(msg.data);
+			break;
 
-	if (msg.action == "set-pass") {
-		setPasswords(msg.data);
-	}
-	if (msg.action == "reset") {
+		case "reset":
+			const tableBody = $("#tbodyPasswords");
+			const loginPage = $("#login-page");
+			const passPage = $("#password-page");
 
-		const tableBody = $("#tbodyPasswords");
-		const loginPage = $("#login-page");
-		const passPage = $("#password-page");
-
-		passPage.fadeOut(300);
-		tableBody.html("");
-		setTimeout(function () {
-			loginPage.fadeIn(300);
-		}, 300);
+			passPage.fadeOut(300);
+			tableBody.html("");
+			setTimeout(function () {
+				loginPage.fadeIn(300);
+			}, 300);
+			break;
+		case "saved-url-reply":
+			$("#form_login").find('input[name="url"]').val(msg.url);
+			break;
 	}
 });
 
-$("#page_login_form_login").submit(function () {
+$(document).ready(function () {
+	port.postMessage({action: "saved-url"});
+});
 
-	const data = $("#page_login_form_login").serialize();
-
-	port.postMessage({action: "login-call", data: data});
+$("#form_login").submit(function (e) {
+	e.preventDefault();
+	const me = $(this),
+		url = me.find('input[name="url"]').val();
+	port.postMessage({action: "login-call", url: url, data: me.serialize()});
 });
 
 function insertPassword(id) {
-
 	port.postMessage({action: "insert", id: id});
 	console.debug("insert message sent");
 }
@@ -74,6 +82,7 @@ function setPasswords(data) {
 	}, 300);
 
 }
-function field(value) {
-	return "<td>" + value + "</td>";
+
+function field(inner) {
+	return "<td>" + inner + "</td>";
 }

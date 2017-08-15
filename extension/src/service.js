@@ -1,117 +1,126 @@
-let loggedIn = false;
-let accessToken = "";
 let passwords = [];
+let url = "";
 
-var extensionConnector = null;
-var siteConnector = null;
-
+var extensionPort;
+var sitePort;
 
 chrome.runtime.onConnect.addListener(function (port) {
-	if (port.name == "extension") createExtensionPort(port);
-	if (port.name == "site") createSitePort(port);
-
-
+	if (port.name == "extension")
+		extensionPort = createExtensionPort(port);
+	if (port.name == "site")
+		sitePort = createSitePort(port);
 });
-function createExtensionPort(port) {
-	if (loggedIn) {
-		port.postMessage({data: passwords, action: "set-pass"});
+
+chrome.runtime.onInstalled.addListener(function (details) {
+	if (details.reason == "install") {
+		chrome.storage.sync.set({"lastUrl": "https://app.passy.pw"});
 	}
-	port.onMessage.addListener(function (request) {
+});
 
-		const action = request.action;
-
-		if (action == "insert") {
-
-			fetchPassword(request.id, function (response) {
-
-
-				if (response.success) {
-					siteConnector.postMessage({action: "insert", password: response.data.password});
-				}
-			});
-
-		}
-		if (action == "login-call") {
-
-			$.ajax({
-				method: 'POST',
-				url: 'https://dev.liz3.net/passy-api/index.php',
-				data: request.data,
-				success: function (response) {
-
-					if (response.success) {
-						loggedIn = true;
-						accessToken = response.token[0];
-						fetchPasswords(function (response) {
-
-							passwords = response.data;
-							if (extensionConnector != null) extensionConnector.postMessage({
-								data: passwords,
-								action: "set-pass"
-							});
-
-							let checker = setInterval(function () {
-
-								$.ajax({
-									method: 'POST',
-									url: 'https://dev.liz3.net/passy-api/index.php',
-									data: "a=" + encodeURIComponent("status") + "&" +
-									encodeURIComponent("access_token") + "=" +
-									encodeURIComponent(accessToken),
-									success: function (response) {
-
-										if (response.data.logged_in == false) {
-											clearInterval(checker);
-											logOut();
-
-										}
-									},
-									error: function (response) {
-
-
-									}
-								})
-
-							}, 2000);
-						});
-					} else {
-
-					}
-				},
-				error: function (response) {
-					console.log("Error");
-
-				}
-			})
-
-		}
-
+function createExtensionPort(port) {
+	isLoggedIn(function (loggedin) {
+		if (loggedin)
+			port.postMessage({data: passwords, action: "set-pass"});
 	});
-	extensionConnector = port;
-}
-function logOut() {
+	port.onMessage.addListener(function (request) {
+		const action = request.action;
+		switch (action) {
+			case "insert":
+				fetchPassword(request.id, function (response) {
+					if (response.success) {
+						sitePort.postMessage({action: "insert", password: response.data.password});
+					}
+				});
+				break;
 
-	accessToken = "";
-	loggedIn = false;
-	extensionConnector.postMessage({action: "reset"});
+			case "login-call":
+				url = request.url;
+				// remove trailing slash
+				if (url.endsWith("/"))
+					url = url.substring(0, url.length - 1);
+
+				chrome.storage.sync.set({"lastUrl": url});
+				$.ajax({
+					method: 'POST',
+					url: url + "/action.php",
+					data: request.data,
+					success: function (response) {
+						if (response.success) {
+							fetchPasswords(function (response) {
+								passwords = response.data;
+								if (extensionPort !== null)
+									extensionPort.postMessage({
+										data: passwords,
+										action: "set-pass"
+									});
+
+								const checker = setInterval(function () {
+									$.ajax({
+										method: 'POST',
+										url: url + "/action.php",
+										data: "a=status",
+										success: function (response) {
+											if (!response.data.logged_in) {
+												clearInterval(checker);
+												logOut();
+											}
+										}
+									})
+								}, 2000);
+							});
+						} else {
+						}
+					},
+					error: function () {
+						console.log("Error");
+					}
+				});
+				break;
+
+			case "saved-url":
+				chrome.storage.sync.get("lastUrl", function (items) {
+					extensionPort.postMessage({
+						action: "saved-url-reply",
+						url: items.lastUrl
+					});
+				});
+				break;
+		}
+	});
+	return port;
 }
+
 function createSitePort(port) {
-
 	port.onMessage.addListener(function (request) {
 		console.log(request);
 	});
-	siteConnector = port;
+	return port;
+}
 
+function isLoggedIn(callback) {
+	$.ajax({
+		method: 'POST',
+		url: url + "/action.php",
+		data: "a=status",
+		success: function (response) {
+			if (callback != null)
+				callback(response.data.logged_in);
+		}
+	})
+}
+
+function logOut() {
+	passwords = [];
+	url = "";
+	extensionPort.postMessage({action: "reset"});
 }
 
 function fetchPassword(id, callback) {
 
 	$.ajax({
 		method: 'POST',
-		url: 'https://dev.liz3.net/passy-api/index.php',
-		data: "a=" + encodeURIComponent("password/query") + "&" +
-		encodeURIComponent("access_token") + "=" +
-		encodeURIComponent(accessToken) + "&id=" + encodeURIComponent(id),
+		url: url + "/action.php",
+		data: "a=password/query&id=" + id,
 		success: function (response) {
 			callback(response);
 		},
@@ -121,14 +130,12 @@ function fetchPassword(id, callback) {
 		}
 	})
 }
-function fetchPasswords(callback) {
 
+function fetchPasswords(callback) {
 	$.ajax({
 		method: 'POST',
-		url: 'https://dev.liz3.net/passy-api/index.php',
-		data: "a=" + encodeURIComponent("password/queryAll") + "&" +
-		encodeURIComponent("access_token") + "=" +
-		encodeURIComponent(accessToken),
+		url: url + "/action.php",
+		data: "a=password/queryAll",
 		success: function (response) {
 			callback(response);
 		},
