@@ -1,6 +1,7 @@
 let passwords = [];
 let url = "";
 
+var intervals = [];
 var extensionPort;
 var sitePort;
 
@@ -18,10 +19,19 @@ chrome.runtime.onInstalled.addListener(function (details) {
 });
 
 function createExtensionPort(port) {
-	isLoggedIn(function (loggedin) {
-		if (loggedin)
-			port.postMessage({data: passwords, action: "set-pass"});
+	suspendAllIntervals();
+
+	// Set url to last used URL
+	chrome.storage.sync.get("lastUrl", function (items) {
+		url = items.lastUrl;
+
+		isLoggedIn(function (loggedIn) {
+			if (loggedIn) {
+				postLogin();
+			}
+		});
 	});
+
 	port.onMessage.addListener(function (request) {
 		const action = request.action;
 		switch (action) {
@@ -39,6 +49,9 @@ function createExtensionPort(port) {
 				if (url.endsWith("/"))
 					url = url.substring(0, url.length - 1);
 
+				if (!isUrlValid())
+					return false;
+
 				chrome.storage.sync.set({"lastUrl": url});
 				$.ajax({
 					method: 'POST',
@@ -46,28 +59,7 @@ function createExtensionPort(port) {
 					data: request.data,
 					success: function (response) {
 						if (response.success) {
-							fetchPasswords(function (response) {
-								passwords = response.data;
-								if (extensionPort !== null)
-									extensionPort.postMessage({
-										data: passwords,
-										action: "set-pass"
-									});
-
-								const checker = setInterval(function () {
-									$.ajax({
-										method: 'POST',
-										url: url + "/action.php",
-										data: "a=status",
-										success: function (response) {
-											if (!response.data.logged_in) {
-												clearInterval(checker);
-												logOut();
-											}
-										}
-									})
-								}, 2000);
-							});
+							postLogin();
 						} else {
 						}
 					},
@@ -78,11 +70,9 @@ function createExtensionPort(port) {
 				break;
 
 			case "saved-url":
-				chrome.storage.sync.get("lastUrl", function (items) {
-					extensionPort.postMessage({
-						action: "saved-url-reply",
-						url: items.lastUrl
-					});
+				extensionPort.postMessage({
+					action: "saved-url-reply",
+					url: url
 				});
 				break;
 		}
@@ -97,8 +87,45 @@ function createSitePort(port) {
 	return port;
 }
 
+function suspendAllIntervals() {
+	intervals.forEach(function (t, index) {
+		suspendInterval(index);
+	});
+}
+
+function suspendInterval(index) {
+	clearInterval(intervals[index]);
+	intervals.splice(index, 1);
+}
+
+function postLogin() {
+	fetchPasswords(function (response) {
+		passwords = response.data;
+		if (extensionPort !== null)
+			extensionPort.postMessage({
+				data: passwords,
+				action: "set-pass"
+			});
+
+		const intervalIndex = intervals.push(setInterval(function () {
+			$.ajax({
+				method: 'POST',
+				url: url + "/action.php",
+				data: "a=status",
+				success: function (response) {
+					if (!response.data.logged_in) {
+						suspendInterval(intervalIndex);
+						reset();
+					}
+				}
+			})
+		}, 2000));
+	});
+}
+
 function isLoggedIn(callback) {
-    if(url == null || url == "") return false;
+	if (!isUrlValid())
+		return false;
 	$.ajax({
 		method: 'POST',
 		url: url + "/action.php",
@@ -110,14 +137,14 @@ function isLoggedIn(callback) {
 	})
 }
 
-function logOut() {
+function reset() {
 	passwords = [];
-	url = "";
 	extensionPort.postMessage({action: "reset"});
 }
 
 function fetchPassword(id, callback) {
-
+	if (!isUrlValid())
+		return false;
 	$.ajax({
 		method: 'POST',
 		url: url + "/action.php",
@@ -133,6 +160,8 @@ function fetchPassword(id, callback) {
 }
 
 function fetchPasswords(callback) {
+	if (!isUrlValid())
+		return false;
 	$.ajax({
 		method: 'POST',
 		url: url + "/action.php",
@@ -145,5 +174,10 @@ function fetchPasswords(callback) {
 
 		}
 	})
+
+}
+
+function isUrlValid() {
+	return !(url == null || url == "");
 
 }
