@@ -98,6 +98,7 @@ function createSitePort(port) {
 }
 
 function isLoggedIn(callback) {
+    if(url == null || url == "") return false;
 	$.ajax({
 		method: 'POST',
 		url: url + "/action.php",
