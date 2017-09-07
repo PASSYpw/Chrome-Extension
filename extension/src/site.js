@@ -1,4 +1,5 @@
 var inputs = $(".textbox > input");
+
 inputs.each(function (index, elem) {
 	elem = $(elem);
 	if (elem.val().length > 0)
@@ -15,14 +16,31 @@ inputs.change(function () {
 
 const port = chrome.runtime.connect({name: "extension"});
 
+function switchPages() {
+	if ($("#save-page").is(":visible")) {
+		$("#save-page").hide();
+		$("#password-page").show();
+	} else {
+		$("#save-page").show();
+		$("#password-page").hide();
+
+	}
+}
+
 port.onMessage.addListener(function (msg) {
 	console.debug(msg);
 	switch (msg.action) {
-		case "set-pass":
+		case "set-pass": {
 			setPasswords(msg.data);
 			break;
+		}
 
-		case "reset":
+		case "create-confirm" : {
+			switchPages();
+			setPasswords(msg.data, false);
+			break;
+		}
+		case "reset": {
 			const tableBody = $("#tbodyPasswords");
 			const loginPage = $("#login-page");
 			const passPage = $("#password-page");
@@ -33,9 +51,16 @@ port.onMessage.addListener(function (msg) {
 				loginPage.fadeIn(300);
 			}, 300);
 			break;
-		case "saved-url-reply":
+		}
+		case "saved-url-reply": {
 			$("#form_login").find('input[name="url"]').val(msg.url);
 			break;
+		}
+		case "prepare-save": {
+			if (msg.data.username !== null) $("#pre-save-username").val(msg.data.username);
+			if (msg.data.password !== null) $("#pre-save-password").val(msg.data.password);
+		}
+
 	}
 });
 
@@ -49,15 +74,36 @@ $("#form_login").submit(function (e) {
 		url = me.find('input[name="url"]').val();
 	port.postMessage({action: "login-call", url: url, data: me.serialize()});
 });
+$("#form_save").submit(function (e) {
+	e.preventDefault();
+	const me = $(this);
+	port.postMessage({action: "save-call", data: me.serialize()});
+});
+
+$("#pass-switch-pages").click((ev) => {
+	switchPages();
+});
+$("#show-save-pass").click((ev) => {
+
+	const current = $("#pre-save-password").attr("type");
+
+	$("#pre-save-password").attr("type", current === "text" ? "password" : "text");
+
+});
+$("#save-switch-pages").click((ev) => {
+	switchPages();
+});
 
 function insertPassword(id) {
 	port.postMessage({action: "insert", id: id});
 	console.debug("insert message sent");
 }
 
-function setPasswords(data) {
+function setPasswords(data, fade = true) {
+
 
 	const tableBody = $("#tbodyPasswords");
+	tableBody.html("");
 	const loginPage = $("#login-page");
 	const passPage = $("#password-page");
 
@@ -76,10 +122,12 @@ function setPasswords(data) {
 			insertPassword(value.password_id);
 		});
 	});
-	loginPage.fadeOut(300);
-	setTimeout(function () {
-		passPage.fadeIn(300);
-	}, 300);
+	if (fade) {
+		loginPage.fadeOut(300);
+		setTimeout(function () {
+			passPage.fadeIn(300);
+		}, 300);
+	}
 
 }
 
