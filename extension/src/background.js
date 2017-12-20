@@ -1,6 +1,7 @@
-const port = chrome.runtime.connect({name: "site"});
-var activeField = null;
+const port = chrome.runtime.connect({name: "background"});
+let activeField = null;
 const manuellSet = [];
+
 function handleForSave() {
 
 	if (activeField == null) return;
@@ -15,8 +16,6 @@ function handleForSave() {
 		port.postMessage({action: "callback-save", field: "password", value: activeField.val()});
 
 	}
-
-
 }
 
 port.onMessage.addListener(function (msg) {

@@ -1,37 +1,46 @@
 {
-  "manifest_version": 2,
-  "name": "PASSY Chrome Extension",
-  "description": "This is the Chrome Extension for the PASSY Password Manager",
-  "version": "1.1.1",
-  "browser_action": {
-	"default_icon": "icon.png",
-	"default_popup": "index.html",
-	"default_title": "PASSY"
-  },
-  "background": {
-	"scripts": [
-	  "js/jquery.min.js",
-	  "src/service.js"
+	"manifest_version": 2,
+	"name": "PASSY Chrome Extension",
+	"description": "Official Chrome Extension for PASSY",
+	"version": "1.2",
+	"icons": {
+		"16": "img/logo-16.png",
+		"48": "img/logo-48.png",
+		"128": "img/logo-128.png"
+	},
+	"browser_action": {
+		"default_icon": {
+			"16": "img/icon-16.png",
+			"24": "img/icon-24.png",
+			"32": "img/icon-32.png"
+		},
+		"default_popup": "frontend.html",
+		"default_title": "PASSY"
+	},
+	"background": {
+		"scripts": [
+			"js/jquery.min.js",
+			"src/service.js"
+		]
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"http://*/*",
+				"https://*/*"
+			],
+			"js": [
+				"js/jquery.min.js",
+				"src/background.js"
+			],
+			"run_at": "document_end"
+		}
+	],
+	"content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+	"permissions": [
+		"https://*/*",
+		"activeTab",
+		"storage",
+		"contextMenus"
 	]
-  },
-  "content_scripts": [
-	{
-	  "matches": [
-		"http://*/*",
-		"https://*/*"
-	  ],
-	  "js": [
-		"js/jquery.min.js",
-		"src/index.js"
-	  ],
-	  "run_at": "document_end"
-	}
-  ],
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
-  "permissions": [
-	"activeTab",
-	"storage",
-	"https://*/*",
-	"contextMenus"
-  ]
 }

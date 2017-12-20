@@ -14,7 +14,7 @@ inputs.change(function () {
 		me.removeClass("hastext");
 });
 
-const port = chrome.runtime.connect({name: "extension"});
+const port = chrome.runtime.connect({name: "frontend"});
 
 function switchPages() {
 	if ($("#save-page").is(":visible")) {
@@ -23,14 +23,13 @@ function switchPages() {
 	} else {
 		$("#save-page").show();
 		$("#password-page").hide();
-
 	}
 }
 
 port.onMessage.addListener(function (msg) {
 	console.debug(msg);
 	switch (msg.action) {
-		case "set-pass": {
+		case "login-successful": {
 			setPasswords(msg.data);
 			break;
 		}
@@ -40,6 +39,7 @@ port.onMessage.addListener(function (msg) {
 			setPasswords(msg.data, false);
 			break;
 		}
+
 		case "reset": {
 			const tableBody = $("#tbodyPasswords");
 			const loginPage = $("#login-page");
@@ -52,19 +52,23 @@ port.onMessage.addListener(function (msg) {
 			}, 300);
 			break;
 		}
+
 		case "saved-url-reply": {
 			$("#form_login").find('input[name="url"]').val(msg.url);
 			break;
 		}
-		case "prepare-save": {
-			if (msg.data.username !== null) $("#pre-save-username").val(msg.data.username);
-			if (msg.data.password !== null) $("#pre-save-password").val(msg.data.password);
-		}
 
+		case "prepare-save": {
+			if (msg.data.username !== null)
+				$("#pre-save-username").val(msg.data.username);
+			if (msg.data.password !== null)
+				$("#pre-save-password").val(msg.data.password);
+			break;
+		}
 	}
 });
 
-$(document).ready(function () {
+$(function () {
 	port.postMessage({action: "saved-url"});
 });
 
@@ -74,23 +78,23 @@ $("#form_login").submit(function (e) {
 		url = me.find('input[name="url"]').val();
 	port.postMessage({action: "login-call", url: url, data: me.serialize()});
 });
+
 $("#form_save").submit(function (e) {
 	e.preventDefault();
 	const me = $(this);
 	port.postMessage({action: "save-call", data: me.serialize()});
 });
 
-$("#pass-switch-pages").click((ev) => {
+$("#pass-switch-pages").click(function () {
 	switchPages();
 });
-$("#show-save-pass").click((ev) => {
 
+$("#show-save-pass").click(function () {
 	const current = $("#pre-save-password").attr("type");
 
 	$("#pre-save-password").attr("type", current === "text" ? "password" : "text");
-
 });
-$("#save-switch-pages").click((ev) => {
+$("#save-switch-pages").click(function () {
 	switchPages();
 });
 
@@ -100,19 +104,19 @@ function insertPassword(id) {
 }
 
 function setPasswords(data, fade = true) {
-
-
 	const tableBody = $("#tbodyPasswords");
 	tableBody.html("");
 	const loginPage = $("#login-page");
 	const passPage = $("#password-page");
 
 	data.forEach(function (value) {
+		if (value.archived)
+			return; // continue
 		const button = "<button class='btn btn-success' id='pass-" + value.password_id + "'>Insert</button>";
 		var add = "<tr>";
-		add += field(value.username);
-		add += field(value.description);
-		add += field(value.date_added_readable);
+		add += field(value.username.safe);
+		add += field(value.description.safe);
+		add += field(value.date_added.pretty);
 		add += field(button);
 		add += "</tr>";
 
@@ -132,5 +136,7 @@ function setPasswords(data, fade = true) {
 }
 
 function field(inner) {
+	if (inner.trim().length === 0)
+		inner = "<i>None</i>";
 	return "<td>" + inner + "</td>";
 }

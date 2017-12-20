@@ -1,79 +1,65 @@
 let passwords = [];
 let url = "";
-const dataForSave = {};
+const intervals = [];
+let extensionPort;
+let sitePort;
 
-var intervals = [];
-var extensionPort;
-var sitePort;
+const dataToSave = {};
 
-function randomPassword(length) {
-	var alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#-.,+*$%&!",
-		string = "";
-	for (var i = 0; i < length; i++) {
-		var position = Math.floor(Math.random() * alphabet.length);
-		string += alphabet.charAt(position);
+chrome.runtime.onConnect.addListener((port) => {
+	if (port.name === "frontend")
+		extensionPort = createFrontendPort(port);
+	if (port.name === "background")
+		sitePort = createBackgroundPort(port);
+});
+
+chrome.runtime.onInstalled.addListener((details) => {
+	if (details.reason === "install") {
+		chrome.storage.sync.set({"lastUrl": "https://app.passy.pw"});
 	}
-	return string;
-}
+});
 
 chrome.contextMenus.create({
-	"title": "Generate Password",
+	"title": "Generate and mark password",
 	"contexts": ["editable"],
-	"onclick": (ev) => {
+	"onclick": () => {
 
 		if (sitePort !== null) {
 			const pass = randomPassword(20);
-			dataForSave.password = pass;
+			dataToSave.password = pass;
 			sitePort.postMessage({action: "generate-pass", password: pass});
 		}
 	}
 });
 chrome.contextMenus.create({
-	"title": "Set as username for save",
+	"title": "Mark as username",
 	"contexts": ["editable"],
-	"onclick": (ev) => {
+	"onclick": () => {
 
-		if (sitePort !== null) sitePort.postMessage({action: "update-save", field: "username"});
+		if (sitePort !== null)
+			sitePort.postMessage({action: "update-save", field: "username"});
 
 	}
 });
 chrome.contextMenus.create({
-	"title": "Set as Password for save",
+	"title": "Mark as password",
 	"contexts": ["editable"],
-	"onclick": (ev) => {
+	"onclick": () => {
 
-		if (sitePort !== null) sitePort.postMessage({action: "update-save", field: "password"});
-
-	}
-});
-chrome.contextMenus.create({
-	"title": "Test",
-	"contexts": ["page_action"],
-	"onclick": (ev) => {
+		if (sitePort !== null)
+			sitePort.postMessage({action: "update-save", field: "password"});
 
 	}
 });
-chrome.runtime.onConnect.addListener(function (port) {
-	if (port.name == "extension")
-		extensionPort = createExtensionPort(port);
-	if (port.name == "site")
-		sitePort = createSitePort(port);
-});
 
-chrome.runtime.onInstalled.addListener(function (details) {
-	if (details.reason == "install") {
-		chrome.storage.sync.set({"lastUrl": "https://app.passy.pw"});
-	}
-});
-
-function createExtensionPort(port) {
+function createFrontendPort(port) {
 	suspendAllIntervals();
 
 	// Set url to last used URL
 	chrome.storage.sync.get("lastUrl", function (items) {
 		url = items.lastUrl;
 
-		isLoggedIn(function (loggedIn) {
+		checkLoginState(function (loggedIn) {
 			if (loggedIn) {
 				postLogin();
 			}
@@ -86,15 +72,15 @@ function createExtensionPort(port) {
 			case "insert":
 				fetchPassword(request.id, function (response) {
 					if (response.success) {
-						sitePort.postMessage({action: "insert", password: response.data.password});
+						sitePort.postMessage({action: "insert", password: response.data.password.raw});
 					}
 				});
 				break;
 
 
 			case "login-call": {
-
 				url = request.url;
+
 				// remove trailing slash
 				if (url.endsWith("/"))
 					url = url.substring(0, url.length - 1);
@@ -110,11 +96,10 @@ function createExtensionPort(port) {
 					success: function (response) {
 						if (response.success) {
 							postLogin();
-						} else {
 						}
 					},
 					error: function () {
-						console.log("Error");
+						console.log("Login error");
 					}
 				});
 				break;
@@ -127,7 +112,6 @@ function createExtensionPort(port) {
 					data: request.data,
 					success: function (response) {
 						if (response.success) {
-
 							fetchPasswords((response) => {
 								passwords = response.data;
 								if (extensionPort !== null) extensionPort.postMessage({
@@ -143,7 +127,9 @@ function createExtensionPort(port) {
 						console.log("Error");
 					}
 				});
+				break;
 			}
+
 			case "saved-url": {
 				extensionPort.postMessage({
 					action: "saved-url-reply",
@@ -153,12 +139,12 @@ function createExtensionPort(port) {
 			}
 		}
 	});
-	port.postMessage({action: "prepare-save", data: dataForSave});
+	port.postMessage({action: "prepare-save", data: dataToSave});
 	return port;
 }
 
-function createSitePort(port) {
-	console.log("siteport connected");
+function createBackgroundPort(port) {
+	console.log("Backgroundport connected");
 	port.onMessage.addListener(function (request) {
 		const action = request.action;
 		switch (action) {
@@ -166,11 +152,11 @@ function createSitePort(port) {
 				const field = request.field;
 				const value = request.value;
 				if (field == "username") {
-					dataForSave.username = value;
+					dataToSave.username = value;
 					return;
 				}
 				if (field == "password") {
-					dataForSave.password = value;
+					dataToSave.password = value;
 					return;
 				}
 			}
@@ -196,7 +182,7 @@ function postLogin() {
 		if (extensionPort !== null)
 			extensionPort.postMessage({
 				data: passwords,
-				action: "set-pass"
+				action: "login-successful"
 			});
 
 		const intervalIndex = intervals.push(setInterval(function () {
@@ -215,7 +201,7 @@ function postLogin() {
 	});
 }
 
-function isLoggedIn(callback) {
+function checkLoginState(callback) {
 	if (!isUrlValid())
 		return false;
 	$.ajax({
@@ -269,7 +255,27 @@ function fetchPasswords(callback) {
 
 }
 
-function isUrlValid() {
-	return !(url == null || url == "");
+// Helper functions
 
+function isUrlValid() {
+	return !(url == null || url.trim().length === 0);
+
+}
+
+function randomPassword(length) {
+	const safeAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+		specialAlphabet = "@#$%_-";
+
+	let string = "";
+
+	for (let i = 0; i < length; i++) {
+		const alphabet = (i === 0 || i === length) ? safeAlphabet : safeAlphabet + specialAlphabet; // first and last letter is not a special char
+
+		string += alphabet.charAt(randomNumber(alphabet.length));
+	}
+	return string;
+}
+
+function randomNumber(max = 1) {
+	return Math.floor(Math.random() * max)
 }

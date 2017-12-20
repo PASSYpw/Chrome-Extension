@@ -34,8 +34,8 @@
 				</div>
 			</form>
 		</div>
-		<div style="display: none" id="password-page">
-			<button id="pass-switch-pages" class="btn btn-success pull-right">Insert new Password</button>
+		<div id="password-page" style="display: none">
+			<button id="pass-switch-pages" class="btn btn-success pull-right">Create new Password</button>
 
 			<table id="tablePasswords" class="table table-hover">
 				<thead>
@@ -43,7 +43,7 @@
 					<th>Username</th>
 					<th>Description</th>
 					<th>Date added</th>
-					<th>Actions</th>
+					<th></th>
 				</tr>
 				</thead>
 				<tbody id="tbodyPasswords">
@@ -61,7 +61,8 @@
 						<label>Username</label>
 					</div>
 					<div class="textbox">
-						<input type="password" id="pre-save-password" class="text-input" title="Password" name="password" required/>
+						<input type="password" id="pre-save-password" class="text-input" title="Password"
+						       name="password" required/>
 						<label>Password</label>
 					</div>
 					<button id="show-save-pass" class="btn pull-right">S</button>
@@ -79,6 +80,6 @@
 	</div>
 </div>
 <script src="js/jquery.min.js" type="application/javascript"></script>
-<script src="src/site.js" type="application/javascript"></script>
+<script src="src/frontend.js" type="application/javascript"></script>
 </body>
 </html>
